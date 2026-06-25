@@ -8,6 +8,7 @@
 <meta property="og:title" content="INTERN / Web3 Engineer" />
 <meta property="og:description" content="Smart contracts, full-stack dApps, on-chain tooling, and the communities around them." />
 <meta name="twitter:card" content="summary" />
+<link rel="icon" type="image/jpeg" href="favicon.jpg" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -66,8 +67,8 @@ a{color:inherit;text-decoration:none}
 /* ── header ── */
 header.site{position:sticky;top:0;z-index:30;background:var(--header-bg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 header.site .bar{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:var(--maxw);margin:0 auto;padding:0 28px}
-.logo{font-family:var(--mono);font-weight:500;font-size:.92rem;letter-spacing:.02em;display:flex;align-items:center;gap:9px}
-.logo .sq{width:8px;height:8px;background:var(--ink);display:inline-block}
+.logo{font-family:var(--mono);font-weight:500;font-size:.92rem;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+.logo .pfp{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--line-strong)}
 nav.top{display:flex;gap:30px;align-items:center}
 nav.top a{font-size:.88rem;color:var(--gray);transition:color .15s}
 nav.top a:hover{color:var(--ink)}
@@ -90,6 +91,7 @@ html[data-theme="dark"] .theme .sun{display:inline}
 
 /* ── hero ── */
 .hero{padding:96px 0 84px;border-bottom:1px solid var(--line)}
+.hero-pfp{width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--line-strong);margin-bottom:28px}
 .hero .status{font-family:var(--mono);font-size:.78rem;color:var(--gray);display:inline-flex;align-items:center;gap:9px;margin-bottom:30px}
 .hero .status .live{width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.14)}
 .hero h1{font-size:clamp(2.1rem,5.4vw,3.5rem);font-weight:600;letter-spacing:-.025em;line-height:1.08;margin-bottom:26px;color:var(--ink)}
@@ -162,7 +164,7 @@ footer p{font-family:var(--mono);font-size:.74rem;color:var(--faint)}
 
 <header class="site">
   <div class="bar">
-    <a href="#top" class="logo"><span class="sq"></span>INTERN</a>
+    <a href="#top" class="logo"><img class="pfp" src="assets/pfp.jpg" alt="INTERN" />INTERN</a>
     <div class="right">
       <nav class="top" id="nav">
         <a href="#work">Work</a>
@@ -184,6 +186,7 @@ footer p{font-family:var(--mono);font-size:.74rem;color:var(--faint)}
 
   <!-- HERO -->
   <section class="hero">
+    <img class="hero-pfp" src="assets/pfp.jpg" alt="INTERN" />
     <h1>I build on-chain things<br><span class="muted">that actually ship.</span></h1>
     <p>I’m <strong>INTERN</strong>. I build in crypto. The contracts, the app, the backend stuff that holds it all together. Been around five years now. Started in communities, ended up writing the code.</p>
     <div class="links">
