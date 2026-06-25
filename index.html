@@ -109,6 +109,13 @@ html[data-theme="dark"] .theme .sun{display:inline}
 .code .n{color:var(--c-num)}
 .code .s{color:var(--c-str)}
 .code .d{color:var(--faint)}
+.code .tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);background:var(--bg-2)}
+.code .tabs button{font-family:var(--mono);font-size:.75rem;color:var(--faint);background:none;border:0;border-right:1px solid var(--line);padding:11px 15px;cursor:pointer;white-space:nowrap;transition:color .15s,background .15s;border-bottom:2px solid transparent}
+.code .tabs button:hover{color:var(--gray)}
+.code .tabs button.active{color:var(--ink);background:var(--code-bg);border-bottom-color:var(--ink)}
+.code .pane{display:none}
+.code .pane.active{display:block}
+.code .note{font-family:var(--mono);font-size:.7rem;color:var(--faint);padding:9px 16px;border-bottom:1px solid var(--line);background:var(--code-bg)}
 
 /* capability table */
 .tbl{border-top:1px solid var(--line)}
@@ -162,54 +169,174 @@ footer .st i{width:6px;height:6px;border-radius:50%;background:#16a34a;display:i
     </div>
   </section>
 
-  <div class="lbl">// not your average mint function</div>
+  <div class="lbl">// the hard parts, one per layer</div>
   <div class="code">
-    <div class="bar"><span class="fn"><b>SigClaim.sol</b></span><span class="lang">solidity · yul</span></div>
-    <div class="body">
-      <span class="row"><span class="c">// EIP-712 signature claim. transient reentrancy lock, low-s guard,</span></span>
-      <span class="row"><span class="c">// hand-rolled ecrecover, O(1) storage-bitmap replay guard. all in assembly.</span></span>
-      <span class="row"><span class="k">function</span> <span class="fnc">claim</span>(<span class="t">uint256</span> id, <span class="t">uint256</span> amt, <span class="t">uint8</span> v, <span class="t">bytes32</span> r, <span class="t">bytes32</span> s) <span class="k">external</span> {</span>
-      <span class="row">    <span class="k">assembly</span> {</span>
-      <span class="row">        <span class="c">// EIP-2: reject malleable high-s signatures</span></span>
-      <span class="row">        <span class="k">if</span> <span class="fnc">gt</span>(s, <span class="n">0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0</span>) {</span>
-      <span class="row">            <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x8baa579f</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) <span class="c">// InvalidSig()</span></span>
-      <span class="row">        }</span>
-      <span class="row">        <span class="c">// EIP-1153 transient reentrancy lock</span></span>
-      <span class="row">        <span class="k">if</span> <span class="fnc">tload</span>(_LOCK) { <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0xab143c06</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) }</span>
-      <span class="row">        <span class="fnc">tstore</span>(_LOCK, <span class="n">1</span>)</span>
-      <span class="row"> </span>
-      <span class="row">        <span class="k">let</span> p := <span class="fnc">mload</span>(<span class="n">0x40</span>)</span>
-      <span class="row">        <span class="fnc">mstore</span>(p, _CLAIM_TYPEHASH)</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x20</span>), <span class="fnc">caller</span>())</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x40</span>), id)</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x60</span>), amt)</span>
-      <span class="row">        <span class="k">let</span> structHash := <span class="fnc">keccak256</span>(p, <span class="n">0x80</span>)</span>
-      <span class="row"> </span>
-      <span class="row">        <span class="fnc">mstore</span>(p, <span class="s">hex"1901"</span>)                  <span class="c">// 0x19 0x01 ‖ domainSep ‖ struct</span></span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x02</span>), _DOMAIN_SEPARATOR)</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x22</span>), structHash)</span>
-      <span class="row">        <span class="k">let</span> digest := <span class="fnc">keccak256</span>(p, <span class="n">0x42</span>)</span>
-      <span class="row"> </span>
-      <span class="row">        <span class="fnc">mstore</span>(p, digest)</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x20</span>), <span class="fnc">and</span>(v, <span class="n">0xff</span>))</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x40</span>), r)</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x60</span>), s)</span>
-      <span class="row">        <span class="fnc">pop</span>(<span class="fnc">staticcall</span>(<span class="fnc">gas</span>(), <span class="n">0x01</span>, p, <span class="n">0x80</span>, <span class="n">0x00</span>, <span class="n">0x20</span>)) <span class="c">// ecrecover</span></span>
-      <span class="row">        <span class="k">if</span> <span class="fnc">iszero</span>(<span class="fnc">eq</span>(<span class="fnc">mload</span>(<span class="n">0x00</span>), <span class="fnc">sload</span>(_SIGNER))) {</span>
-      <span class="row">            <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x8baa579f</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>)</span>
-      <span class="row">        }</span>
-      <span class="row"> </span>
-      <span class="row">        <span class="c">// O(1) replay guard: one storage bit per id</span></span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="fnc">shr</span>(<span class="n">0x08</span>, id))</span>
-      <span class="row">        <span class="fnc">mstore</span>(<span class="n">0x20</span>, _CLAIMED_SLOT)</span>
-      <span class="row">        <span class="k">let</span> bucket := <span class="fnc">keccak256</span>(<span class="n">0x00</span>, <span class="n">0x40</span>)</span>
-      <span class="row">        <span class="k">let</span> bit := <span class="fnc">shl</span>(<span class="fnc">and</span>(id, <span class="n">0xff</span>), <span class="n">1</span>)</span>
-      <span class="row">        <span class="k">if</span> <span class="fnc">and</span>(<span class="fnc">sload</span>(bucket), bit) { <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x646cf558</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) }</span>
-      <span class="row">        <span class="fnc">sstore</span>(bucket, <span class="fnc">or</span>(<span class="fnc">sload</span>(bucket), bit))</span>
-      <span class="row">        <span class="fnc">tstore</span>(_LOCK, <span class="n">0</span>)</span>
-      <span class="row">    }</span>
-      <span class="row">    <span class="fnc">_mint</span>(msg.sender, id, amt, <span class="s">""</span>);</span>
-      <span class="row">}</span>
+    <div class="tabs">
+      <button class="active" data-i="0">SigClaim.sol</button>
+      <button data-i="1">FullMath.sol</button>
+      <button data-i="2">useMint.ts</button>
+      <button data-i="3">indexer.ts</button>
+    </div>
+
+    <!-- 0: contracts -->
+    <div class="pane active">
+      <div class="note">contracts · EIP-712 signature claim, entirely in assembly</div>
+      <div class="body">
+        <span class="row"><span class="c">// transient reentrancy lock, low-s guard, hand-rolled ecrecover,</span></span>
+        <span class="row"><span class="c">// O(1) storage-bitmap replay guard. zero abstraction overhead.</span></span>
+        <span class="row"><span class="k">function</span> <span class="fnc">claim</span>(<span class="t">uint256</span> id, <span class="t">uint256</span> amt, <span class="t">uint8</span> v, <span class="t">bytes32</span> r, <span class="t">bytes32</span> s) <span class="k">external</span> {</span>
+        <span class="row">    <span class="k">assembly</span> {</span>
+        <span class="row">        <span class="c">// EIP-2: reject malleable high-s signatures</span></span>
+        <span class="row">        <span class="k">if</span> <span class="fnc">gt</span>(s, <span class="n">0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0</span>) {</span>
+        <span class="row">            <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x8baa579f</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) <span class="c">// InvalidSig()</span></span>
+        <span class="row">        }</span>
+        <span class="row">        <span class="c">// EIP-1153 transient reentrancy lock</span></span>
+        <span class="row">        <span class="k">if</span> <span class="fnc">tload</span>(_LOCK) { <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0xab143c06</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) }</span>
+        <span class="row">        <span class="fnc">tstore</span>(_LOCK, <span class="n">1</span>)</span>
+        <span class="row"> </span>
+        <span class="row">        <span class="k">let</span> p := <span class="fnc">mload</span>(<span class="n">0x40</span>)</span>
+        <span class="row">        <span class="fnc">mstore</span>(p, _CLAIM_TYPEHASH)</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x20</span>), <span class="fnc">caller</span>())</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x40</span>), id)</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x60</span>), amt)</span>
+        <span class="row">        <span class="k">let</span> structHash := <span class="fnc">keccak256</span>(p, <span class="n">0x80</span>)</span>
+        <span class="row"> </span>
+        <span class="row">        <span class="fnc">mstore</span>(p, <span class="s">hex"1901"</span>)                  <span class="c">// 0x19 0x01 ‖ domainSep ‖ struct</span></span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x02</span>), _DOMAIN_SEPARATOR)</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x22</span>), structHash)</span>
+        <span class="row">        <span class="k">let</span> digest := <span class="fnc">keccak256</span>(p, <span class="n">0x42</span>)</span>
+        <span class="row"> </span>
+        <span class="row">        <span class="fnc">mstore</span>(p, digest)</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x20</span>), <span class="fnc">and</span>(v, <span class="n">0xff</span>))</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x40</span>), r)</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="fnc">add</span>(p, <span class="n">0x60</span>), s)</span>
+        <span class="row">        <span class="fnc">pop</span>(<span class="fnc">staticcall</span>(<span class="fnc">gas</span>(), <span class="n">0x01</span>, p, <span class="n">0x80</span>, <span class="n">0x00</span>, <span class="n">0x20</span>)) <span class="c">// ecrecover</span></span>
+        <span class="row">        <span class="k">if</span> <span class="fnc">iszero</span>(<span class="fnc">eq</span>(<span class="fnc">mload</span>(<span class="n">0x00</span>), <span class="fnc">sload</span>(_SIGNER))) {</span>
+        <span class="row">            <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x8baa579f</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>)</span>
+        <span class="row">        }</span>
+        <span class="row"> </span>
+        <span class="row">        <span class="c">// O(1) replay guard: one storage bit per id</span></span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="fnc">shr</span>(<span class="n">0x08</span>, id))</span>
+        <span class="row">        <span class="fnc">mstore</span>(<span class="n">0x20</span>, _CLAIMED_SLOT)</span>
+        <span class="row">        <span class="k">let</span> bucket := <span class="fnc">keccak256</span>(<span class="n">0x00</span>, <span class="n">0x40</span>)</span>
+        <span class="row">        <span class="k">let</span> bit := <span class="fnc">shl</span>(<span class="fnc">and</span>(id, <span class="n">0xff</span>), <span class="n">1</span>)</span>
+        <span class="row">        <span class="k">if</span> <span class="fnc">and</span>(<span class="fnc">sload</span>(bucket), bit) { <span class="fnc">mstore</span>(<span class="n">0x00</span>, <span class="n">0x646cf558</span>) <span class="fnc">revert</span>(<span class="n">0x1c</span>, <span class="n">0x04</span>) }</span>
+        <span class="row">        <span class="fnc">sstore</span>(bucket, <span class="fnc">or</span>(<span class="fnc">sload</span>(bucket), bit))</span>
+        <span class="row">        <span class="fnc">tstore</span>(_LOCK, <span class="n">0</span>)</span>
+        <span class="row">    }</span>
+        <span class="row">    <span class="fnc">_mint</span>(msg.sender, id, amt, <span class="s">""</span>);</span>
+        <span class="row">}</span>
+      </div>
+    </div>
+
+    <!-- 1: hardest solidity -->
+    <div class="pane">
+      <div class="note">contracts · 512-bit mulDiv, the function 90% can copy but can't derive</div>
+      <div class="body">
+        <span class="row"><span class="c">// floor(a · b / d) at full 512-bit precision. no overflow, no lost bits.</span></span>
+        <span class="row"><span class="k">function</span> <span class="fnc">mulDiv</span>(<span class="t">uint256</span> a, <span class="t">uint256</span> b, <span class="t">uint256</span> d) <span class="k">internal</span> <span class="k">pure</span> <span class="k">returns</span> (<span class="t">uint256</span> r) {</span>
+        <span class="row">    <span class="t">uint256</span> prod0; <span class="c">// low 256 bits of a * b</span></span>
+        <span class="row">    <span class="t">uint256</span> prod1; <span class="c">// high 256 bits of a * b</span></span>
+        <span class="row">    <span class="k">assembly</span> {</span>
+        <span class="row">        <span class="k">let</span> mm := <span class="fnc">mulmod</span>(a, b, <span class="fnc">not</span>(<span class="n">0</span>))</span>
+        <span class="row">        prod0 := <span class="fnc">mul</span>(a, b)</span>
+        <span class="row">        prod1 := <span class="fnc">sub</span>(<span class="fnc">sub</span>(mm, prod0), <span class="fnc">lt</span>(mm, prod0))</span>
+        <span class="row">    }</span>
+        <span class="row">    <span class="k">if</span> (prod1 == <span class="n">0</span>) <span class="k">return</span> prod0 / d; <span class="c">// fits in 256 bits</span></span>
+        <span class="row">    <span class="k">require</span>(d &gt; prod1); <span class="c">// otherwise the result overflows</span></span>
+        <span class="row"> </span>
+        <span class="row">    <span class="t">uint256</span> rem;</span>
+        <span class="row">    <span class="k">assembly</span> {</span>
+        <span class="row">        rem := <span class="fnc">mulmod</span>(a, b, d)</span>
+        <span class="row">        prod1 := <span class="fnc">sub</span>(prod1, <span class="fnc">gt</span>(rem, prod0))</span>
+        <span class="row">        prod0 := <span class="fnc">sub</span>(prod0, rem)</span>
+        <span class="row">    }</span>
+        <span class="row">    <span class="t">uint256</span> twos = d &amp; (~d + <span class="n">1</span>); <span class="c">// isolate lowest set bit of d</span></span>
+        <span class="row">    <span class="k">assembly</span> {</span>
+        <span class="row">        d := <span class="fnc">div</span>(d, twos)</span>
+        <span class="row">        prod0 := <span class="fnc">div</span>(prod0, twos)</span>
+        <span class="row">        twos := <span class="fnc">add</span>(<span class="fnc">div</span>(<span class="fnc">sub</span>(<span class="n">0</span>, twos), twos), <span class="n">1</span>)</span>
+        <span class="row">    }</span>
+        <span class="row">    prod0 |= prod1 * twos;</span>
+        <span class="row"> </span>
+        <span class="row">    <span class="c">// Newton-Raphson: invert d mod 2^256, doubling precision each step</span></span>
+        <span class="row">    <span class="t">uint256</span> inv = (<span class="n">3</span> * d) ^ <span class="n">2</span>;</span>
+        <span class="row">    inv *= <span class="n">2</span> - d * inv; inv *= <span class="n">2</span> - d * inv; <span class="c">// 2^8  -> 2^16</span></span>
+        <span class="row">    inv *= <span class="n">2</span> - d * inv; inv *= <span class="n">2</span> - d * inv; <span class="c">// 2^32 -> 2^64</span></span>
+        <span class="row">    inv *= <span class="n">2</span> - d * inv; inv *= <span class="n">2</span> - d * inv; <span class="c">// 2^128 -> 2^256</span></span>
+        <span class="row">    r = prod0 * inv; <span class="c">// exact, one multiply, no division</span></span>
+        <span class="row">}</span>
+      </div>
+    </div>
+
+    <!-- 2: frontend -->
+    <div class="pane">
+      <div class="note">frontend · optimistic tx lifecycle that survives reorgs and stale state</div>
+      <div class="body">
+        <span class="row"><span class="c">// simulate -> write -> reorg-tolerant wait -> reconcile -> roll back.</span></span>
+        <span class="row"><span class="c">// what breaks in prod: stale closures and out-of-order receipts.</span></span>
+        <span class="row"><span class="k">export function</span> <span class="fnc">useMint</span>&lt;<span class="k">const</span> TAbi <span class="k">extends</span> <span class="t">Abi</span>&gt;(config: <span class="t">MintConfig</span>&lt;TAbi&gt;) {</span>
+        <span class="row">  <span class="k">const</span> client = <span class="fnc">usePublicClient</span>();</span>
+        <span class="row">  <span class="k">const</span> { data: wallet } = <span class="fnc">useWalletClient</span>();</span>
+        <span class="row">  <span class="k">const</span> qc = <span class="fnc">useQueryClient</span>();</span>
+        <span class="row"> </span>
+        <span class="row">  <span class="k">return</span> <span class="fnc">useMutation</span>({</span>
+        <span class="row">    mutationFn: <span class="k">async</span> (args: <span class="t">MintArgs</span>) =&gt; {</span>
+        <span class="row">      <span class="c">// simulate first, so reverts surface in the UI, not the chain</span></span>
+        <span class="row">      <span class="k">const</span> { request } = <span class="k">await</span> client.<span class="fnc">simulateContract</span>({</span>
+        <span class="row">        ...config, account: wallet!.account, args: [args.qty, args.proof],</span>
+        <span class="row">      });</span>
+        <span class="row">      <span class="k">const</span> hash = <span class="k">await</span> wallet!.<span class="fnc">writeContract</span>(request);</span>
+        <span class="row">      <span class="k">const</span> receipt = <span class="k">await</span> client.<span class="fnc">waitForTransactionReceipt</span>({</span>
+        <span class="row">        hash, confirmations: <span class="n">2</span>, <span class="c">// ride out shallow reorgs</span></span>
+        <span class="row">      });</span>
+        <span class="row">      <span class="k">if</span> (receipt.status === <span class="s">"reverted"</span>) <span class="k">throw new</span> <span class="t">TxReverted</span>(hash);</span>
+        <span class="row">      <span class="k">return</span> receipt;</span>
+        <span class="row">    },</span>
+        <span class="row">    onMutate: <span class="k">async</span> (args) =&gt; {</span>
+        <span class="row">      <span class="k">await</span> qc.<span class="fnc">cancelQueries</span>({ queryKey: [<span class="s">"supply"</span>] });</span>
+        <span class="row">      <span class="k">const</span> prev = qc.<span class="fnc">getQueryData</span>&lt;<span class="t">bigint</span>&gt;([<span class="s">"supply"</span>]);</span>
+        <span class="row">      qc.<span class="fnc">setQueryData</span>([<span class="s">"supply"</span>], (s = <span class="n">0n</span>) =&gt; s + <span class="fnc">BigInt</span>(args.qty));</span>
+        <span class="row">      <span class="k">return</span> { prev }; <span class="c">// rollback context for onError</span></span>
+        <span class="row">    },</span>
+        <span class="row">    onError: (_e, _a, ctx) =&gt; qc.<span class="fnc">setQueryData</span>([<span class="s">"supply"</span>], ctx?.prev),</span>
+        <span class="row">    onSettled: () =&gt; qc.<span class="fnc">invalidateQueries</span>({ queryKey: [<span class="s">"supply"</span>] }),</span>
+        <span class="row">  });</span>
+        <span class="row">}</span>
+      </div>
+    </div>
+
+    <!-- 3: infra -->
+    <div class="pane">
+      <div class="note">infra · reorg-aware indexer, the bug that silently corrupts prod</div>
+      <div class="body">
+        <span class="row"><span class="c">// on a reorg you must roll state back, not just append the new head.</span></span>
+        <span class="row"><span class="k">async function</span> <span class="fnc">indexLoop</span>(db: <span class="t">DB</span>, client: <span class="t">PublicClient</span>) {</span>
+        <span class="row">  <span class="k">let</span> cursor = <span class="k">await</span> db.<span class="fnc">lastBlock</span>(); <span class="c">// { number, hash }</span></span>
+        <span class="row"> </span>
+        <span class="row">  <span class="k">for</span> (;;) {</span>
+        <span class="row">    <span class="k">const</span> head = <span class="k">await</span> client.<span class="fnc">getBlockNumber</span>();</span>
+        <span class="row">    <span class="k">if</span> (head &lt;= cursor.number) { <span class="k">await</span> <span class="fnc">sleep</span>(<span class="n">2_000</span>); <span class="k">continue</span>; }</span>
+        <span class="row"> </span>
+        <span class="row">    <span class="k">const</span> next = <span class="k">await</span> client.<span class="fnc">getBlock</span>({ blockNumber: cursor.number + <span class="n">1n</span> });</span>
+        <span class="row"> </span>
+        <span class="row">    <span class="c">// parent hash mismatch => a reorg happened at or below the cursor</span></span>
+        <span class="row">    <span class="k">if</span> (next.parentHash !== cursor.hash) {</span>
+        <span class="row">      <span class="k">const</span> fork = <span class="k">await</span> <span class="fnc">findCommonAncestor</span>(db, client, cursor);</span>
+        <span class="row">      <span class="k">await</span> db.<span class="fnc">rollbackTo</span>(fork.number); <span class="c">// drop orphaned rows</span></span>
+        <span class="row">      cursor = fork; <span class="k">continue</span>; <span class="c">// re-walk from the fork point</span></span>
+        <span class="row">    }</span>
+        <span class="row"> </span>
+        <span class="row">    <span class="k">const</span> logs = <span class="k">await</span> client.<span class="fnc">getLogs</span>({ blockHash: next.hash, events: WATCHED });</span>
+        <span class="row"> </span>
+        <span class="row">    <span class="k">await</span> db.<span class="fnc">transaction</span>(<span class="k">async</span> (tx) =&gt; { <span class="c">// atomic: logs + cursor together</span></span>
+        <span class="row">      <span class="k">await</span> tx.<span class="fnc">insertLogs</span>(<span class="fnc">decode</span>(logs));</span>
+        <span class="row">      <span class="k">await</span> tx.<span class="fnc">setCursor</span>({ number: next.number, hash: next.hash });</span>
+        <span class="row">    });</span>
+        <span class="row">    cursor = { number: next.number, hash: next.hash };</span>
+        <span class="row">  }</span>
+        <span class="row">}</span>
+      </div>
     </div>
   </div>
 
@@ -249,6 +376,18 @@ tb.addEventListener('click',function(){
   var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',next);
   try{localStorage.setItem('theme',next);}catch(e){}
+});
+
+var tabs=document.querySelectorAll('.code .tabs button');
+var panes=document.querySelectorAll('.code .pane');
+tabs.forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var i=btn.getAttribute('data-i');
+    tabs.forEach(function(b){b.classList.remove('active')});
+    panes.forEach(function(p){p.classList.remove('active')});
+    btn.classList.add('active');
+    panes[i].classList.add('active');
+  });
 });
 
 var clk=document.getElementById('clock');
